@@ -1,39 +1,39 @@
-# HOP
+# HOP Android
 
-**HOP is Open HWP**
+**HOP is Open HWP — Android**
 
-HOP는 HWP/HWPX 문서를 보고 편집할 수 있는 오픈소스 macOS, Windows, Linux용 데스크탑 앱입니다.
+HOP는 HWP/HWPX 문서를 보고 편집할 수 있는 오픈소스 앱입니다. 이 저장소는 Tauri v2 기반 HOP의 Android 이식 작업을 중심으로 관리합니다. 데스크톱 전용 흐름을 모바일에 맞게 분리하고, Android의 content URI 파일 I/O와 터치 UX를 보강하는 것이 목표입니다.
 
-문서 파싱과 렌더링의 기반은 [rhwp](https://github.com/edwardkim/rhwp)를 사용합니다. HOP는 그 위에 얇게 껍데기를 씌운 앱입니다. rhwp가 제공하는 기능을 바탕으로 파일 열기, 저장, PDF 내보내기, 인쇄, 파일 연결 같은 OS 통합 기능을 제공합니다.
+## Status
 
-![HOP editor](assets/screenshots/hop-editor.webp)
+* Android 이식 진행 중
+* 모바일 전용 기능은 점진적으로 추가/검증 중
 
-## 할 수 있는 일
+## Android 이식 목표
 
-현재 HOP는 다음 흐름을 지원합니다.
+* 외부 앱에서 `.hwp`/`.hwpx` 파일 열기 (VIEW intent)
+* Scoped Storage 환경에서 열기/저장/다른 이름으로 저장
+* 모바일 UX(하단 액션 바, 롱프레스 액션 시트 등)
+* 데스크톱 전용 기능은 모바일 빌드에서 비활성
 
-* HWP/HWPX 문서 열기
-* HWP 문서 저장, 다른 이름으로 저장
-* PDF로 내보내기
-* 인쇄 다이얼로그 열기
-* 파일 드래그 앤 드롭으로 열기
-* `.hwp`, `.hwpx` 파일 연결
-* 여러 창에서 문서 열기
+## Android 개발 빠른 시작
 
-## 다운로드
+Android SDK/NDK/JDK가 준비되어 있어야 합니다.
 
-최신 릴리즈는 아래 링크에서 받을 수 있습니다.
+```bash
+pnpm install
+pnpm --filter hop-desktop tauri android init
+pnpm run android:bridge:setup
+pnpm run android:bridge:check
+pnpm --filter hop-desktop tauri android dev
+```
 
-* [macOS Apple Silicon (.dmg)](https://github.com/golbin/hop/releases/latest/download/HOP-macos-arm64.dmg)
-* [macOS Intel (.dmg)](https://github.com/golbin/hop/releases/latest/download/HOP-macos-x64.dmg)
-* [Windows x64 (.msi)](https://github.com/golbin/hop/releases/latest/download/HOP-windows-x64.msi)
-* [Linux x64 (AppImage)](https://github.com/golbin/hop/releases/latest/download/HOP-linux-x64.AppImage)
+## 문서
 
-macOS 빌드는 signed/notarized `.dmg`입니다. Windows 빌드는 아직 서명되지 않아 Edge나 Windows SmartScreen에서 "일반적으로 다운로드되지 않습니다" 또는 실행 경고가 뜰 수 있습니다. 다운로드 항목의 `...` 메뉴에서 `유지`를 선택한 뒤 다운로드할 수 있습니다. 전체 릴리즈는 [GitHub Releases](https://github.com/golbin/hop/releases)에서 확인할 수 있습니다.
-
-## 개발하기
-
-개발 환경 준비, 실행 명령, 프로젝트 구조, `rhwp`와의 관계는 [개발 문서](docs/DEVELOPMENT.md)에 정리해 두었습니다.
+* [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+* [docs/architecture/ANDROID_MIGRATION_1PAGER.md](docs/architecture/ANDROID_MIGRATION_1PAGER.md)
+* [docs/architecture/ANDROID_INTENT_PIPELINE.md](docs/architecture/ANDROID_INTENT_PIPELINE.md)
+* [docs/operations/ANDROID_MOBILE_E2E.md](docs/operations/ANDROID_MOBILE_E2E.md)
 
 ## Credits
 
