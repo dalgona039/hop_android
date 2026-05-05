@@ -1,21 +1,17 @@
 # HOP Android
 
-# HOP Android
+HOP Android는 HOP 프로젝트의 Android 포트(포크)입니다. HOP는 rhwp 엔진을 기반으로 한 HWP/HWPX 편집기이며, 이 저장소는 Android 환경(인텐트 기반 열기, Scoped Storage I/O, 모바일 UX)에 맞춘 구현을 목표로 합니다.
 
-HOP (fork/Android port) — Android-focused repository for the HOP project.
+핵심 요약
+- 프로젝트: HOP의 Android 포트 (원본은 Tauri v2 기반 데스크톱)
+- 엔진: rhwp (Rust + WebAssembly)로 HWP/HWPX 파싱 및 렌더링
+- 목표: Android에 맞춘 파일 열기/저장 UX 및 문서 편집 흐름 제공
 
-This repository contains the Android port efforts for HOP, an open HWP/HWPX editor built on top of the rhwp engine. The upstream HOP project and the rhwp engine are both essential components of this work and are credited below.
+릴리즈 현황
+- GitHub Releases에 Android 빌드가 배포되어 있습니다.
 
-Key points
-- Project: Android port of HOP (Tauri v2-based desktop originally)
-- Engine: rhwp (Rust + WebAssembly) is used for HWP/HWPX parsing and rendering
-- Goal: provide an Android experience (Intent-based file open, Scoped Storage I/O, mobile UX)
-
-Status
-- Alpha: early Android builds available (debug/release pipelines in progress)
-
-Quick Start (developer)
-Prerequisites: Android SDK, NDK, JDK, Node.js, pnpm
+개발 Quick Start
+필수: Android SDK, NDK, JDK, Node.js, pnpm
 
 ```bash
 # workspace dependencies
@@ -32,24 +28,25 @@ pnpm run android:bridge:check
 pnpm --filter hop-desktop tauri android dev
 ```
 
-Build artifacts
+빌드 산출물
 - APK: `apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk`
 - AAB: `apps/desktop/src-tauri/gen/android/app/build/outputs/bundle/universalDebug/app-universal-debug.aab`
 
-Documentation and important files
-- Development notes: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
-- Android migration strategy: [docs/architecture/ANDROID_MIGRATION_1PAGER.md](docs/architecture/ANDROID_MIGRATION_1PAGER.md)
-- Intent & URI pipeline: [docs/architecture/ANDROID_INTENT_PIPELINE.md](docs/architecture/ANDROID_INTENT_PIPELINE.md)
-- Android E2E checklist: [docs/operations/ANDROID_MOBILE_E2E.md](docs/operations/ANDROID_MOBILE_E2E.md)
+문서 및 중요 파일
+- 개발 노트: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- Android 마이그레이션 전략: [docs/architecture/ANDROID_MIGRATION_1PAGER.md](docs/architecture/ANDROID_MIGRATION_1PAGER.md)
+- Intent/URI 파이프라인: [docs/architecture/ANDROID_INTENT_PIPELINE.md](docs/architecture/ANDROID_INTENT_PIPELINE.md)
+- Android E2E 체크리스트: [docs/operations/ANDROID_MOBILE_E2E.md](docs/operations/ANDROID_MOBILE_E2E.md)
 
-Credits & attribution
-- This repository is an Android-focused fork/port derived from the HOP project: https://github.com/golbin/hop (MIT).
-- The HWP/HWPX engine powering the editor is `rhwp`: https://github.com/edwardkim/rhwp (MIT). Please keep the upstream license and copyright notices when redistributing.
+크레딧 및 출처
+- 이 저장소는 HOP 프로젝트의 Android 포크/포트입니다: https://github.com/golbin/hop (MIT)
+- HWP/HWPX 엔진 rhwp: https://github.com/edwardkim/rhwp (MIT)
+	- 배포 시 상위 라이선스 및 저작권 고지를 유지해야 합니다.
 
-License
-- This repository is distributed under the MIT License. See `LICENSE` for details.
+라이선스
+- 이 저장소는 MIT License로 배포됩니다. 자세한 내용은 `LICENSE`를 참고하세요.
 
-Contact
+연락처
 - Repository: https://github.com/dalgona039/hop_android
 
-Please open issues or pull requests for Android-specific bugs, feature requests, or packaging improvements.
+Android 관련 이슈나 기능 요청은 이 저장소에 등록해 주세요.
