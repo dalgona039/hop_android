@@ -1,42 +1,55 @@
 # HOP Android
 
-**HOP is Open HWP — Android**
+# HOP Android
 
-HOP는 HWP/HWPX 문서를 보고 편집할 수 있는 오픈소스 앱입니다. 이 저장소는 Tauri v2 기반 HOP의 Android 이식 작업을 중심으로 관리합니다. 데스크톱 전용 흐름을 모바일에 맞게 분리하고, Android의 content URI 파일 I/O와 터치 UX를 보강하는 것이 목표입니다.
+HOP (fork/Android port) — Android-focused repository for the HOP project.
 
-## Status
+This repository contains the Android port efforts for HOP, an open HWP/HWPX editor built on top of the rhwp engine. The upstream HOP project and the rhwp engine are both essential components of this work and are credited below.
 
-* Android 이식 진행 중
-* 모바일 전용 기능은 점진적으로 추가/검증 중
+Key points
+- Project: Android port of HOP (Tauri v2-based desktop originally)
+- Engine: rhwp (Rust + WebAssembly) is used for HWP/HWPX parsing and rendering
+- Goal: provide an Android experience (Intent-based file open, Scoped Storage I/O, mobile UX)
 
-## Android 이식 목표
+Status
+- Alpha: early Android builds available (debug/release pipelines in progress)
 
-* 외부 앱에서 `.hwp`/`.hwpx` 파일 열기 (VIEW intent)
-* Scoped Storage 환경에서 열기/저장/다른 이름으로 저장
-* 모바일 UX(하단 액션 바, 롱프레스 액션 시트 등)
-* 데스크톱 전용 기능은 모바일 빌드에서 비활성
-
-## Android 개발 빠른 시작
-
-Android SDK/NDK/JDK가 준비되어 있어야 합니다.
+Quick Start (developer)
+Prerequisites: Android SDK, NDK, JDK, Node.js, pnpm
 
 ```bash
+# workspace dependencies
 pnpm install
+
+# initialize Android project (from repo root)
 pnpm --filter hop-desktop tauri android init
+
+# apply Android bridge templates
 pnpm run android:bridge:setup
 pnpm run android:bridge:check
+
+# build and run debug on a connected device/emulator
 pnpm --filter hop-desktop tauri android dev
 ```
 
-## 문서
+Build artifacts
+- APK: `apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk`
+- AAB: `apps/desktop/src-tauri/gen/android/app/build/outputs/bundle/universalDebug/app-universal-debug.aab`
 
-* [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
-* [docs/architecture/ANDROID_MIGRATION_1PAGER.md](docs/architecture/ANDROID_MIGRATION_1PAGER.md)
-* [docs/architecture/ANDROID_INTENT_PIPELINE.md](docs/architecture/ANDROID_INTENT_PIPELINE.md)
-* [docs/operations/ANDROID_MOBILE_E2E.md](docs/operations/ANDROID_MOBILE_E2E.md)
+Documentation and important files
+- Development notes: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- Android migration strategy: [docs/architecture/ANDROID_MIGRATION_1PAGER.md](docs/architecture/ANDROID_MIGRATION_1PAGER.md)
+- Intent & URI pipeline: [docs/architecture/ANDROID_INTENT_PIPELINE.md](docs/architecture/ANDROID_INTENT_PIPELINE.md)
+- Android E2E checklist: [docs/operations/ANDROID_MOBILE_E2E.md](docs/operations/ANDROID_MOBILE_E2E.md)
 
-## Credits
+Credits & attribution
+- This repository is an Android-focused fork/port derived from the HOP project: https://github.com/golbin/hop (MIT).
+- The HWP/HWPX engine powering the editor is `rhwp`: https://github.com/edwardkim/rhwp (MIT). Please keep the upstream license and copyright notices when redistributing.
 
-HOP는 [rhwp](https://github.com/edwardkim/rhwp)를 기반으로 합니다. HWP 엔진을 공개해 주신 개발자분께 감사드립니다.
+License
+- This repository is distributed under the MIT License. See `LICENSE` for details.
 
-License: MIT
+Contact
+- Repository: https://github.com/dalgona039/hop_android
+
+Please open issues or pull requests for Android-specific bugs, feature requests, or packaging improvements.
