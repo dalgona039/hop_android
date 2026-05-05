@@ -48,5 +48,6 @@ pnpm --filter hop-desktop tauri android dev
 
 연락처
 - Repository: https://github.com/dalgona039/hop_android
+- Email : icpuff83@khu.ac.kr
 
 Android 관련 이슈나 기능 요청은 이 저장소에 등록해 주세요.
