@@ -28,10 +28,6 @@ pnpm run android:bridge:check
 pnpm --filter hop-desktop tauri android dev
 ```
 
-빌드 산출물
-- APK: `apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk`
-- AAB: `apps/desktop/src-tauri/gen/android/app/build/outputs/bundle/universalDebug/app-universal-debug.aab`
-
 문서 및 중요 파일
 - 개발 노트: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
 - Android 마이그레이션 전략: [docs/architecture/ANDROID_MIGRATION_1PAGER.md](docs/architecture/ANDROID_MIGRATION_1PAGER.md)
