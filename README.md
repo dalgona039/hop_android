@@ -1,5 +1,3 @@
-[DeepL Translation of dalgona039/hop_android]
-
 # HOP Android
 
 HOP Android는 HOP 프로젝트의 Android 포트(포크)입니다. HOP는 rhwp 엔진을 기반으로 한 HWP/HWPX 편집기이며, 이 저장소는 Android 환경(인텐트 기반 열기, Scoped Storage I/O, 모바일 UX)에 맞춘 구현을 목표로 합니다.
