@@ -22,6 +22,9 @@ object HopAndroidBridgeInstaller {
     if (webView != null) {
       if (markInstalled(webView)) {
         webView.addJavascriptInterface(bridge, "__HOP_ANDROID_NATIVE__")
+        bridge.attachWebView(webView)
+        // Interfaces added after WebView creation become visible on its next load.
+        webView.reload()
       }
       return
     }

@@ -60,6 +60,51 @@ describe('mobile events', () => {
     });
   });
 
+  it('opens a cold Android VIEW intent from the native queue', async () => {
+    mobileRuntimeFlags.mobile = true;
+    installWindowMocks();
+    vi.stubGlobal('__HOP_ANDROID_NATIVE__', {
+      takePendingOpenUris: vi.fn().mockReturnValueOnce('["content://provider/report.hwp"]').mockReturnValue('[]'),
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer,
+    }));
+    const bridge = {
+      takePendingOpenPaths: vi.fn().mockResolvedValue([]),
+      openDocumentWithExternalBytes: vi.fn().mockResolvedValue({ docInfo: { pageCount: 1 }, message: 'loaded' }),
+    };
+
+    await setupMobileEvents({ bridge, eventBus: { emit: vi.fn() } as never, setMessage: vi.fn() });
+
+    expect(bridge.openDocumentWithExternalBytes).toHaveBeenCalledWith(
+      'report.hwp', expect.any(Uint8Array), 'hwp', 'content://provider/report.hwp',
+    );
+  });
+
+  it('opens a warm Android VIEW intent after the editor is ready', async () => {
+    mobileRuntimeFlags.mobile = true;
+    installWindowMocks();
+    const listeners = new Map<string, () => void>();
+    vi.stubGlobal('window', { addEventListener: (name: string, handler: () => void) => listeners.set(name, handler) });
+    const takePendingOpenUris = vi.fn().mockReturnValueOnce('[]').mockReturnValueOnce('["content://provider/second.hwp"]');
+    vi.stubGlobal('__HOP_ANDROID_NATIVE__', { takePendingOpenUris });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => Uint8Array.from([4, 5]).buffer,
+    }));
+    const bridge = {
+      takePendingOpenPaths: vi.fn().mockResolvedValue([]),
+      openDocumentWithExternalBytes: vi.fn().mockResolvedValue({ docInfo: { pageCount: 2 }, message: 'loaded' }),
+    };
+
+    await setupMobileEvents({ bridge, eventBus: { emit: vi.fn() } as never, setMessage: vi.fn() });
+    listeners.get('hop-android-intent')?.();
+    await vi.waitFor(() => expect(bridge.openDocumentWithExternalBytes).toHaveBeenCalledWith(
+      'second.hwp', expect.any(Uint8Array), 'hwp', 'content://provider/second.hwp',
+    ));
+  });
+
   it('opens content URI targets via byte bridge', async () => {
     mobileRuntimeFlags.mobile = true;
     installWindowMocks();

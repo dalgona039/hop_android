@@ -20,6 +20,35 @@ import java.util.concurrent.atomic.AtomicBoolean
 class HopAndroidBridge(
   private val activity: Activity,
 ) {
+  private val pendingOpenUris = mutableListOf<String>()
+  private var webView: android.webkit.WebView? = null
+
+  init {
+    acceptIntent(activity.intent)
+  }
+
+  fun attachWebView(view: android.webkit.WebView) {
+    webView = view
+  }
+
+  fun acceptIntent(intent: Intent?) {
+    if (intent?.action != Intent.ACTION_VIEW) return
+    val uri = intent.data ?: return
+    if (uri.scheme != "content") return
+    synchronized(pendingOpenUris) { pendingOpenUris.add(uri.toString()) }
+    webView?.post {
+      webView?.evaluateJavascript("window.dispatchEvent(new Event('hop-android-intent'))", null)
+    }
+  }
+
+  @JavascriptInterface
+  fun takePendingOpenUris(): String {
+    val uris = synchronized(pendingOpenUris) {
+      pendingOpenUris.toList().also { pendingOpenUris.clear() }
+    }
+    return org.json.JSONArray(uris).toString()
+  }
+
   private val createDocumentInFlight = AtomicBoolean(false)
   private val createDocumentLock = Any()
   private var createDocumentLatch: CountDownLatch? = null

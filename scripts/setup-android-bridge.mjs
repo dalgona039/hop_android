@@ -129,6 +129,37 @@ function patchMainActivity(source) {
   fail('MainActivity.kt 패치 형식을 찾을 수 없습니다. 수동으로 onCreate에 HopAndroidBridgeInstaller.install(this, hopAndroidBridge)를 추가하세요.');
 }
 
+function addIntentHandler(source) {
+  if (source.includes('override fun onNewIntent(intent: Intent)')) return source;
+  let patched = ensureImport(source, 'import android.content.Intent');
+  patched = patched.replace(
+    /class MainActivity\s*:\s*TauriActivity\(\)\s*\{/,
+    (declaration) => `${declaration}\n  private lateinit var hopAndroidBridge: HopAndroidBridge`,
+  );
+  patched = patched.replace('val hopAndroidBridge = HopAndroidBridge(this)', 'hopAndroidBridge = HopAndroidBridge(this)');
+  const closingBrace = patched.lastIndexOf('}');
+  if (closingBrace < 0 || !patched.includes('private lateinit var hopAndroidBridge')) {
+    fail('MainActivity.kt에 Android Intent 핸들러를 설치할 수 없습니다.');
+  }
+  return `${patched.slice(0, closingBrace)}  override fun onNewIntent(intent: Intent) {\n    super.onNewIntent(intent)\n    setIntent(intent)\n    hopAndroidBridge.acceptIntent(intent)\n  }\n${patched.slice(closingBrace)}`;
+}
+
+function addViewIntentFilter(source) {
+  if (source.includes('android.intent.action.VIEW')) return source;
+  const closingActivity = '</activity>';
+  if (!source.includes(closingActivity)) fail('AndroidManifest.xml에 MainActivity 종료 태그가 없습니다.');
+  const filter = `            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/x-hwp" />
+                <data android:mimeType="application/vnd.hancom.hwpx" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+`;
+  return source.replace(closingActivity, `${filter}        ${closingActivity}`);
+}
+
 function renderTemplate(templatePath, packageName) {
   const template = readFileSync(templatePath, 'utf8');
   return template.replaceAll('__HOP_PACKAGE__', packageName);
@@ -171,10 +202,15 @@ const installerSource = renderTemplate(join(templateRoot, 'HopAndroidBridgeInsta
 writeFileSync(join(targetDir, 'HopAndroidBridge.kt'), bridgeSource);
 writeFileSync(join(targetDir, 'HopAndroidBridgeInstaller.kt'), installerSource);
 
-const patchedMainActivity = patchMainActivity(mainActivitySource);
+const patchedMainActivity = addIntentHandler(patchMainActivity(mainActivitySource));
 writeFileSync(mainActivityPath, patchedMainActivity);
+
+const manifestPath = join(generatedAndroidRoot, 'app/src/main/AndroidManifest.xml');
+if (!existsSync(manifestPath)) fail(`AndroidManifest.xml을 찾을 수 없습니다: ${manifestPath}`);
+writeFileSync(manifestPath, addViewIntentFilter(readFileSync(manifestPath, 'utf8')));
 
 console.log('Applied Android URI bridge sources:');
 console.log(`- ${join(targetDir, 'HopAndroidBridge.kt')}`);
 console.log(`- ${join(targetDir, 'HopAndroidBridgeInstaller.kt')}`);
 console.log(`- Patched ${mainActivityPath}`);
+console.log(`- Patched ${manifestPath}`);

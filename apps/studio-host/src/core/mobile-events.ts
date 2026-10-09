@@ -16,6 +16,19 @@ interface MobileEventsOptions {
   setMessage(message: string): void;
 }
 
+function takePendingAndroidOpenUris(): string[] {
+  const native = (globalThis as {
+    __HOP_ANDROID_NATIVE__?: { takePendingOpenUris?: () => string };
+  }).__HOP_ANDROID_NATIVE__;
+  if (typeof native?.takePendingOpenUris !== 'function') return [];
+  try {
+    const parsed: unknown = JSON.parse(native.takePendingOpenUris());
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function setupMobileEvents({
   bridge,
   eventBus,
@@ -27,24 +40,31 @@ export async function setupMobileEvents({
   const { getCurrentWebviewWindow } = await import('@tauri-apps/api/webviewWindow');
   const currentWindow = getCurrentWebviewWindow();
 
+  let currentOpen = Promise.resolve();
+  const enqueueOpen = (targets: string[]) => {
+    currentOpen = currentOpen.then(() => openLatestMobileDocument({
+      bridge: mobile,
+      eventBus,
+      targets,
+      setMessage,
+    }));
+    return currentOpen;
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('hop-android-intent', () => {
+      void enqueueOpen(takePendingAndroidOpenUris());
+    });
+  }
+
   await currentWindow.listen('hop-open-paths', async (event) => {
     const payload = event.payload as { paths?: string[] };
     const pending = await mobile.takePendingOpenPaths?.();
-    await openLatestMobileDocument({
-      bridge: mobile,
-      eventBus,
-      targets: [...(payload.paths ?? []), ...(pending ?? [])],
-      setMessage,
-    });
+    await enqueueOpen([...(payload.paths ?? []), ...(pending ?? [])]);
   });
 
   const pending = await mobile.takePendingOpenPaths?.();
-  await openLatestMobileDocument({
-    bridge: mobile,
-    eventBus,
-    targets: pending ?? [],
-    setMessage,
-  });
+  await enqueueOpen([...(pending ?? []), ...takePendingAndroidOpenUris()]);
 }
 
 function isSupportedDocumentTarget(value: string): boolean {

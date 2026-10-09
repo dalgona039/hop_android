@@ -52,9 +52,18 @@ if (!existsSync(installerPath)) {
 
 const mainActivity = readFileSync(mainActivityPath, 'utf8');
 const bridgeSource = readFileSync(bridgePath, 'utf8');
+const manifestPath = join(generatedAndroidRoot, 'app/src/main/AndroidManifest.xml');
+if (!existsSync(manifestPath)) fail(`AndroidManifest.xml을 찾을 수 없습니다: ${manifestPath}`);
+const manifest = readFileSync(manifestPath, 'utf8');
 
-if (!mainActivity.includes('HopAndroidBridgeInstaller.install(this)')) {
-  fail('MainActivity.kt에서 HopAndroidBridgeInstaller.install(this)를 찾을 수 없습니다.');
+if (!mainActivity.includes('HopAndroidBridgeInstaller.install(this, hopAndroidBridge)')) {
+  fail('MainActivity.kt에서 HopAndroidBridgeInstaller.install(this, hopAndroidBridge)를 찾을 수 없습니다.');
+}
+if (!mainActivity.includes('hopAndroidBridge.acceptIntent(intent)')) {
+  fail('MainActivity.kt에서 Android VIEW Intent 연결을 찾을 수 없습니다.');
+}
+if (!manifest.includes('android.intent.action.VIEW') || !manifest.includes('android:scheme="content"')) {
+  fail('AndroidManifest.xml에 content URI VIEW Intent 필터가 없습니다.');
 }
 
 const requiredMethods = [
@@ -65,6 +74,7 @@ const requiredMethods = [
   'fun writeUriBytesBase64',
   'fun pickWritableUri',
   'fun persistUriPermission',
+  'fun takePendingOpenUris',
 ];
 
 for (const signature of requiredMethods) {
