@@ -7,6 +7,8 @@ const messageMock = vi.hoisted(() => vi.fn());
 const writeUriBytesMock = vi.hoisted(() => vi.fn());
 const requestWritableUriMock = vi.hoisted(() => vi.fn());
 const isUriWritePermissionErrorMock = vi.hoisted(() => vi.fn());
+const resolveContentUriOpenTargetMock = vi.hoisted(() => vi.fn());
+const mobileRuntime = vi.hoisted(() => ({ enabled: false }));
 let TauriBridgeCtor: new () => any;
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -23,6 +25,11 @@ vi.mock('./android-uri-host', () => ({
   writeUriBytes: writeUriBytesMock,
   requestWritableUri: requestWritableUriMock,
   isUriWritePermissionError: isUriWritePermissionErrorMock,
+  resolveContentUriOpenTarget: resolveContentUriOpenTargetMock,
+}));
+
+vi.mock('./bridge-factory', () => ({
+  isTauriMobileRuntime: () => mobileRuntime.enabled,
 }));
 
 vi.mock('@/core/wasm-bridge', () => ({
@@ -53,6 +60,7 @@ describe('TauriBridge', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
+    mobileRuntime.enabled = false;
     isUriWritePermissionErrorMock.mockReturnValue(false);
     requestWritableUriMock.mockResolvedValue(null);
     writeUriBytesMock.mockResolvedValue(undefined);
@@ -148,6 +156,51 @@ describe('TauriBridge', () => {
       filters: [{ name: 'HWP/HWPX 문서', extensions: ['hwp', 'hwpx'] }],
     });
     expect(loaded?.message).toBe('dialog.hwpx — 3페이지');
+  });
+
+  it('opens a content URI selected on Android through the editable document bridge', async () => {
+    mobileRuntime.enabled = true;
+    const bridge = new TauriBridgeCtor();
+    openMock.mockResolvedValue('content://provider/report');
+    resolveContentUriOpenTargetMock.mockResolvedValue({
+      kind: 'bytes', fileName: 'report.hwp', format: 'hwp', bytes: Uint8Array.from([1, 2]),
+    });
+    invokeMock.mockResolvedValue(nativeOpenResult({ docId: 'uri-doc', fileName: 'report.hwp' }));
+
+    const loaded = await bridge.openDocumentFromDialog();
+
+    expect(invokeMock).toHaveBeenCalledWith('open_document_with_payload', {
+      fileName: 'report.hwp', format: 'hwp', bytes: [1, 2],
+    });
+    expect(loaded?.message).toBe('report.hwp — 2페이지');
+  });
+
+  it('keeps the current document when the Android file picker is canceled', async () => {
+    mobileRuntime.enabled = true;
+    const bridge = new TauriBridgeCtor();
+    openMock.mockRejectedValue('File picker cancelled');
+
+    expect(await bridge.openDocumentFromDialog()).toBeNull();
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  it('saves a mobile document through Android CREATE_DOCUMENT', async () => {
+    mobileRuntime.enabled = true;
+    const bridge = new TauriBridgeCtor();
+    applyOpenResult(bridge, {
+      docId: 'doc-1', fileName: 'draft.hwp', sourcePath: null,
+      format: 'hwp', pageCount: 1, revision: 2, dirty: true, warnings: [],
+    });
+    requestWritableUriMock.mockResolvedValue('content://provider/draft.hwp');
+    invokeMock.mockResolvedValue({
+      docId: 'doc-1', sourcePath: null, format: 'hwp', revision: 3, dirty: false, warnings: [],
+    });
+
+    const saved = await bridge.saveDocumentAsFromCommand();
+
+    expect(saveMock).not.toHaveBeenCalled();
+    expect(writeUriBytesMock).toHaveBeenCalledWith('content://provider/draft.hwp', Uint8Array.from([1, 2, 3]));
+    expect(saved?.revision).toBe(3);
   });
 
   it('creates a new native document and releases it if wasm creation fails', async () => {

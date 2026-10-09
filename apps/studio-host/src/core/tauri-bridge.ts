@@ -1,6 +1,9 @@
 import { WasmBridge } from '@/core/wasm-bridge';
 import type { DocumentInfo } from '@/core/types';
-import { isUriWritePermissionError, requestWritableUri, writeUriBytes } from './android-uri-host';
+import {
+  isUriWritePermissionError, requestWritableUri, resolveContentUriOpenTarget, writeUriBytes,
+} from './android-uri-host';
+import { isTauriMobileRuntime } from './bridge-factory';
 
 type DocumentFormat = 'hwp' | 'hwpx';
 
@@ -83,11 +86,27 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
 
   async openDocumentFromDialog(): Promise<DesktopLoadPayload | null> {
     const { open } = await import('@tauri-apps/plugin-dialog');
-    const selected = await open({
-      multiple: false,
-      filters: [{ name: 'HWP/HWPX 문서', extensions: ['hwp', 'hwpx'] }],
-    });
+    let selected: string | string[] | null;
+    try {
+      selected = await open({
+        multiple: false,
+        filters: [{ name: 'HWP/HWPX 문서', extensions: ['hwp', 'hwpx'] }],
+      });
+    } catch (error) {
+      if (isTauriMobileRuntime() && /file picker cancelled/i.test(String(error))) return null;
+      throw error;
+    }
     if (!selected || Array.isArray(selected)) return null;
+    if (this.isContentUri(selected)) {
+      const target = await resolveContentUriOpenTarget(selected);
+      if (!target.format) throw new Error('HWP/HWPX 문서만 열 수 있습니다.');
+      if (target.kind === 'bytes') {
+        return this.openDocumentWithExternalBytes(target.fileName, target.bytes, target.format, selected);
+      }
+      const loaded = await this.openDocumentByPath(target.path);
+      if (loaded) this.bindExternalSourceUri(selected, target.fileName);
+      return loaded;
+    }
     return this.openDocumentByPath(selected);
   }
 
@@ -188,6 +207,10 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
   async saveDocumentAsFromCommand(): Promise<DesktopSaveResult | null> {
     const docId = this.ensureDocumentLoaded();
     const suggestedName = this.suggestedHwpName();
+    if (isTauriMobileRuntime()) {
+      const uri = await requestWritableUri(suggestedName, 'application/x-hwp');
+      return uri ? this.saveExternalUriFromTarget(uri, suggestedName) : null;
+    }
     const targetPath = await this.selectSavePath(suggestedName, 'HWP 문서', ['hwp']);
     if (targetPath) {
       const normalized = targetPath.trim();
@@ -368,6 +391,7 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
     const writableUri = await requestWritableUri(nextName, 'application/x-hwp');
 
     if (!writableUri) {
+      if (isTauriMobileRuntime()) return null;
       return this.saveDocumentAsFromCommand();
     }
 
