@@ -89,3 +89,11 @@ identified as a Hangul Word Processor 5.x file on the host.
 These checks do not cover opening HWP/HWPX from another app's VIEW intent,
 HWPX-to-HWP editing, formatting and layout fidelity across diverse documents,
 or Play Store release readiness.
+
+The first HWPX attempt on the tablet stopped at Android's file picker: the
+sample was disabled before HOP could parse it. The mobile picker now opens
+without an extension filter and validates the selected file after obtaining
+its URI. Desktop file dialog filtering is unchanged. The same pass closes an
+unsafe HWPX save path: Save on a mobile HWPX source opens a new HWP target
+instead of writing HWP bytes over the source URI. Studio tests and build pass;
+the updated APK is installed on the tablet for a fresh HWPX round trip.
