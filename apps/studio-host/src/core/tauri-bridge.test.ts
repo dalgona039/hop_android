@@ -353,6 +353,7 @@ describe('TauriBridge', () => {
 
   it('reuses content URI source on save without forcing save-as repeatedly', async () => {
     const bridge = new TauriBridgeCtor();
+    bridge.exportHwpMock.mockReturnValue(Uint8Array.from([9, 8, 7]));
     applyOpenResult(bridge, {
       docId: 'doc-1',
       fileName: 'existing.hwp',
@@ -365,14 +366,6 @@ describe('TauriBridge', () => {
     });
 
     invokeMock.mockImplementation(async (command: string) => {
-      if (command === 'export_hwp_bytes_for_external_save') {
-        return {
-          docId: 'doc-1',
-          revision: 6,
-          fileName: 'existing.hwp',
-          bytes: [9, 8, 7],
-        };
-      }
       if (command === 'commit_external_hwp_save') {
         return {
           docId: 'doc-1',
@@ -471,6 +464,7 @@ describe('TauriBridge', () => {
 
   it('saves external URI documents by writing URI bytes and committing native revision', async () => {
     const bridge = new TauriBridgeCtor();
+    bridge.exportHwpMock.mockReturnValue(Uint8Array.from([5, 6, 7]));
     applyOpenResult(bridge, {
       docId: 'doc-1',
       fileName: 'source.hwp',
@@ -484,14 +478,6 @@ describe('TauriBridge', () => {
     bindExternalSourceUri(bridge, 'content://provider/docs/source.hwp', 'source.hwp');
 
     invokeMock.mockImplementation(async (command: string) => {
-      if (command === 'export_hwp_bytes_for_external_save') {
-        return {
-          docId: 'doc-1',
-          revision: 4,
-          fileName: 'source.hwp',
-          bytes: [5, 6, 7],
-        };
-      }
       if (command === 'commit_external_hwp_save') {
         return {
           docId: 'doc-1',
@@ -510,6 +496,15 @@ describe('TauriBridge', () => {
     expect(writeUriBytesMock).toHaveBeenCalledWith(
       'content://provider/docs/source.hwp',
       Uint8Array.from([5, 6, 7]),
+    );
+    expect(invokeMock).toHaveBeenCalledWith('commit_external_hwp_save', {
+      docId: 'doc-1',
+      bytes: [5, 6, 7],
+      expectedRevision: 4,
+    });
+    expect(invokeMock).not.toHaveBeenCalledWith(
+      'export_hwp_bytes_for_external_save',
+      expect.anything(),
     );
     expect(result).toEqual({
       docId: 'doc-1',

@@ -86,6 +86,30 @@ describe('android native bootstrap', () => {
     expect(host.getUriMetadata('content://provider/doc').displayName).toBe('doc.hwp');
   });
 
+  it('reports native write permission denial to the save fallback', () => {
+    vi.stubGlobal('__HOP_ANDROID_NATIVE__', {
+      writeUriBytesBase64: vi.fn().mockReturnValue('{"ok":false,"permissionDenied":true}'),
+    });
+    installAndroidNativeHostBridge();
+
+    const host = (globalThis as unknown as {
+      __HOP_ANDROID__: { writeUriBytes(uri: string, bytes: number[]): void };
+    }).__HOP_ANDROID__;
+    expect(() => host.writeUriBytes('content://provider/doc', [1])).toThrow(/permission denied/);
+  });
+
+  it('reports other native write failures without claiming a permission denial', () => {
+    vi.stubGlobal('__HOP_ANDROID_NATIVE__', {
+      writeUriBytesBase64: vi.fn().mockReturnValue('{"ok":false,"permissionDenied":false}'),
+    });
+    installAndroidNativeHostBridge();
+
+    const host = (globalThis as unknown as {
+      __HOP_ANDROID__: { writeUriBytes(uri: string, bytes: number[]): void };
+    }).__HOP_ANDROID__;
+    expect(() => host.writeUriBytes('content://provider/doc', [1])).toThrow('Android URI write failed');
+  });
+
   it('does nothing when native bridge is missing', () => {
     installAndroidNativeHostBridge();
 

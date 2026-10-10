@@ -28,7 +28,7 @@ interface AndroidNativeBridge {
   materializeUriToCachePath?:
     (uri: string) => AndroidNativeMaterializedPayload | string | null | undefined;
   pickWritableUri?: (suggestedFileName: string, mimeType: string) => string | null | undefined;
-  writeUriBytesBase64?: (uri: string, bytesBase64: string) => void;
+  writeUriBytesBase64?: (uri: string, bytesBase64: string) => string | void;
   persistUriPermission?: (uri: string) => boolean | null | undefined;
 }
 
@@ -37,7 +37,7 @@ function trimOrNull(value: string | null | undefined): string | null {
   return trimmed ? trimmed : null;
 }
 
-function parseMaybeJson<T extends object>(value: T | string | null | undefined): T | null {
+function parseMaybeJson<T extends object>(value: T | string | null | void): T | null {
   if (value == null) return null;
   if (typeof value === 'object') return value as T;
 
@@ -215,7 +215,14 @@ export function installAndroidNativeHostBridge(): void {
   if (typeof native.writeUriBytesBase64 === 'function') {
     host.writeUriBytes = (uri: string, bytes: number[]): void => {
       const payload = encodeBase64(Uint8Array.from(bytes));
-      native.writeUriBytesBase64?.(uri, payload);
+      const result = parseMaybeJson<{ ok?: boolean; permissionDenied?: boolean }>(
+        native.writeUriBytesBase64?.(uri, payload),
+      );
+      if (result?.ok === false) {
+        throw new Error(result.permissionDenied
+          ? 'Android URI write permission denied'
+          : 'Android URI write failed');
+      }
     };
   }
 

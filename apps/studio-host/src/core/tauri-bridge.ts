@@ -227,10 +227,12 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
 
   async exportHwpBytesForExternalSave(): Promise<ExternalSavePayload> {
     const docId = this.ensureDocumentLoaded();
-    return this.invoke<ExternalSavePayload>('export_hwp_bytes_for_external_save', {
+    return {
       docId,
-      expectedRevision: this.revision,
-    });
+      revision: this.revision,
+      fileName: this.suggestedHwpName(),
+      bytes: this.currentHwpBytes(),
+    };
   }
 
   async commitExternalHwpSave(bytes: Uint8Array, fileName?: string): Promise<DesktopSaveResult> {

@@ -118,15 +118,24 @@ class HopAndroidBridge(
   }
 
   @JavascriptInterface
-  fun writeUriBytesBase64(uriText: String, bytesBase64: String) {
-    val uri = Uri.parse(uriText)
-    persistUriPermissionInternal(uri)
+  fun writeUriBytesBase64(uriText: String, bytesBase64: String): String {
+    return try {
+      val uri = Uri.parse(uriText)
+      persistUriPermissionInternal(uri)
 
-    val bytes = Base64.decode(bytesBase64, Base64.DEFAULT)
-    activity.contentResolver.openOutputStream(uri, "wt")?.use { output ->
-      output.write(bytes)
-      output.flush()
-    } ?: throw IllegalStateException("content URI 쓰기 스트림을 열 수 없습니다: $uriText")
+      val bytes = Base64.decode(bytesBase64, Base64.DEFAULT)
+      val output = activity.contentResolver.openOutputStream(uri, "wt")
+        ?: throw IllegalStateException("content URI 쓰기 스트림을 열 수 없습니다")
+      output.use {
+        it.write(bytes)
+        it.flush()
+      }
+      JSONObject().put("ok", true).toString()
+    } catch (_: SecurityException) {
+      JSONObject().put("ok", false).put("permissionDenied", true).toString()
+    } catch (_: Exception) {
+      JSONObject().put("ok", false).put("permissionDenied", false).toString()
+    }
   }
 
   @JavascriptInterface
@@ -229,7 +238,8 @@ class HopAndroidBridge(
 
   private fun isWritable(uri: Uri): Boolean {
     return runCatching {
-      activity.contentResolver.openFileDescriptor(uri, "rw")?.use { }
+      val descriptor = activity.contentResolver.openFileDescriptor(uri, "rw") ?: return@runCatching false
+      descriptor.use { }
       true
     }.getOrDefault(false)
   }
