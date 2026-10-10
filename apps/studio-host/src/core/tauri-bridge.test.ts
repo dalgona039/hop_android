@@ -169,10 +169,31 @@ describe('TauriBridge', () => {
 
     const loaded = await bridge.openDocumentFromDialog();
 
+    expect(openMock).toHaveBeenCalledWith({ multiple: false });
     expect(invokeMock).toHaveBeenCalledWith('open_document_with_payload', {
       fileName: 'report.hwp', format: 'hwp', bytes: [1, 2],
     });
     expect(loaded?.message).toBe('report.hwp — 2페이지');
+  });
+
+  it('allows Android picker selection of HWPX and opens its editable session', async () => {
+    mobileRuntime.enabled = true;
+    const bridge = new TauriBridgeCtor();
+    openMock.mockResolvedValue('content://provider/report.hwpx');
+    resolveContentUriOpenTargetMock.mockResolvedValue({
+      kind: 'bytes', fileName: 'report.hwpx', format: 'hwpx', bytes: Uint8Array.from([4, 5]),
+    });
+    invokeMock.mockResolvedValue(nativeOpenResult({
+      docId: 'hwpx-doc', fileName: 'report.hwpx', format: 'hwpx',
+    }));
+
+    const loaded = await bridge.openDocumentFromDialog();
+
+    expect(openMock).toHaveBeenCalledWith({ multiple: false });
+    expect(invokeMock).toHaveBeenCalledWith('open_document_with_payload', {
+      fileName: 'report.hwpx', format: 'hwpx', bytes: [4, 5],
+    });
+    expect(loaded?.message).toBe('report.hwpx — 3페이지');
   });
 
   it('keeps the current document when the Android file picker is canceled', async () => {
@@ -260,6 +281,42 @@ describe('TauriBridge', () => {
     });
 
     await expect(bridge.saveDocumentFromCommand()).rejects.toThrow('HWPX 원본 저장은 아직 안전하게 지원하지 않습니다');
+  });
+
+  it('saves a mobile HWPX URI as a new HWP instead of overwriting the source', async () => {
+    mobileRuntime.enabled = true;
+    const bridge = new TauriBridgeCtor();
+    applyOpenResult(bridge, {
+      docId: 'doc-hwpx',
+      fileName: 'source.hwpx',
+      sourcePath: 'content://provider/source.hwpx',
+      format: 'hwpx',
+      pageCount: 1,
+      revision: 1,
+      dirty: true,
+      warnings: [],
+    });
+    requestWritableUriMock.mockResolvedValue('content://provider/new.hwp');
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === 'commit_external_hwp_save') {
+        return {
+          docId: 'doc-hwpx',
+          sourcePath: null,
+          format: 'hwp',
+          revision: 2,
+          dirty: false,
+          warnings: [],
+        };
+      }
+      throw new Error(`unexpected command ${command}`);
+    });
+
+    const result = await bridge.saveDocumentFromCommand();
+
+    expect(requestWritableUriMock).toHaveBeenCalledWith('source.hwp', 'application/x-hwp');
+    expect(writeUriBytesMock).toHaveBeenCalledOnce();
+    expect(writeUriBytesMock).toHaveBeenCalledWith('content://provider/new.hwp', new Uint8Array([1, 2, 3]));
+    expect(result?.format).toBe('hwp');
   });
 
   it('saves HWP bytes through native state with extension and revision guards', async () => {

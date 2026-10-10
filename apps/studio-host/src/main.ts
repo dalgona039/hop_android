@@ -3,7 +3,8 @@ import { installAndroidNativeHostBridge } from '@/core/android-native-bootstrap'
 import type { CharProperties, DocumentInfo, DocumentPosition } from '@/core/types';
 import { EventBus } from '@/core/event-bus';
 import { createDesktopDocument, setupDesktopEvents } from '@/core/desktop-events';
-import { setupMobileDraftAutosave } from '@/core/mobile-autosave';
+import { restoreMobileDraftSnapshot, setupMobileDraftAutosave } from '@/core/mobile-autosave';
+import type { DesktopBridgeApi } from '@/core/tauri-bridge';
 import { setupMobileEvents } from '@/core/mobile-events';
 import { CanvasView } from '@/view/canvas-view';
 import { InputHandler } from '@/engine/input-handler';
@@ -358,8 +359,12 @@ async function initialize(): Promise<void> {
         }
       },
       restoreSnapshot: async (snapshot) => {
-        const docInfo = wasm.loadDocument(snapshot.bytes, snapshot.fileName);
-        await initializeDocument(docInfo, `${snapshot.fileName} — 임시 저장본 복구`);
+        await restoreMobileDraftSnapshot(
+          snapshot,
+          wasm as Partial<Pick<DesktopBridgeApi,
+            'openDocumentWithExternalBytes' | 'markDocumentDirty'>>,
+          initializeDocument,
+        );
       },
     });
 

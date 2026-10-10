@@ -1,4 +1,6 @@
 import type { EventBus } from '@/core/event-bus';
+import type { DocumentInfo } from '@/core/types';
+import type { DesktopBridgeApi } from './tauri-bridge';
 
 const DB_NAME = 'hop-mobile-drafts';
 const DB_VERSION = 1;
@@ -18,6 +20,26 @@ export interface MobileDraftSnapshot {
   fileName: string;
   bytes: Uint8Array;
   savedAt: number;
+}
+
+type DraftRestoreBridge = Partial<Pick<DesktopBridgeApi,
+  'openDocumentWithExternalBytes' | 'markDocumentDirty'>>;
+
+export async function restoreMobileDraftSnapshot(
+  snapshot: MobileDraftSnapshot,
+  bridge: DraftRestoreBridge,
+  showDocument: (info: DocumentInfo, message: string) => Promise<void>,
+): Promise<void> {
+  if (!bridge.openDocumentWithExternalBytes || !bridge.markDocumentDirty) {
+    throw new Error('모바일 편집 문서 브리지가 준비되지 않았습니다.');
+  }
+
+  const fileName = snapshot.fileName.replace(/\.hwpx$/i, '.hwp');
+  const restored = await bridge.openDocumentWithExternalBytes(fileName, snapshot.bytes, 'hwp');
+  if (!restored) throw new Error('임시 저장본 복구가 취소되었습니다.');
+
+  await showDocument(restored.docInfo, `${fileName} — 임시 저장본 복구`);
+  bridge.markDocumentDirty();
 }
 
 interface MobileDraftAutosaveOptions {

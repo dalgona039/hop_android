@@ -88,10 +88,12 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
     const { open } = await import('@tauri-apps/plugin-dialog');
     let selected: string | string[] | null;
     try {
-      selected = await open({
-        multiple: false,
-        filters: [{ name: 'HWP/HWPX 문서', extensions: ['hwp', 'hwpx'] }],
-      });
+      selected = await open(isTauriMobileRuntime()
+        ? { multiple: false }
+        : {
+          multiple: false,
+          filters: [{ name: 'HWP/HWPX 문서', extensions: ['hwp', 'hwpx'] }],
+        });
     } catch (error) {
       if (isTauriMobileRuntime() && /file picker cancelled/i.test(String(error))) return null;
       throw error;
@@ -192,14 +194,15 @@ export class TauriBridge extends WasmBridge implements DesktopBridgeApi {
       this.externalSourceUri = this.sourcePath;
       this.sourcePath = null;
     }
+    if (this.sourceFormat === 'hwpx' && (this.externalSourceUri || this.sourcePath)) {
+      if (isTauriMobileRuntime()) return this.saveDocumentAsFromCommand();
+      throw new Error('HWPX 원본 저장은 아직 안전하게 지원하지 않습니다. 다른 이름으로 저장에서 HWP 파일로 저장하세요.');
+    }
     if (this.externalSourceUri) {
       return this.saveExternalUriHwpBytes(docId, this.externalSourceUri);
     }
     if (!this.sourcePath) {
       return this.saveDocumentAsFromCommand();
-    }
-    if (this.sourceFormat === 'hwpx') {
-      throw new Error('HWPX 원본 저장은 아직 안전하게 지원하지 않습니다. 다른 이름으로 저장에서 HWP 파일로 저장하세요.');
     }
     return this.saveHwpBytes(docId, null);
   }
